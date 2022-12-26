@@ -8,9 +8,18 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 import WelcomeScreen from "./screens/WelcomeScreen";
+import IconButton from "./components/ui/IconButton";
+
+// Context && AsyncStorage
+import AuthContextProvider, { AuthContext } from "./store/auth-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Style
 import { Colors } from "./constants/styles";
+import React from "react";
+
+// Loading app
+import AppLoading from "expo-app-loading";
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +39,8 @@ function AuthStack() {
 }
 
 function AuthenticatedStack() {
+  const authCtx = React.useContext(AuthContext);
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -38,25 +49,67 @@ function AuthenticatedStack() {
         contentStyle: { backgroundColor: Colors.primary100 },
       }}
     >
-      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen
+        name="Welcome"
+        component={WelcomeScreen}
+        options={{
+          headerRight: ({ tintColor }) => (
+            <IconButton
+              icon="exit"
+              color={tintColor}
+              size={24}
+              onPress={authCtx.logout}
+            />
+          ),
+        }}
+      />
     </Stack.Navigator>
   );
 }
 
 function Navigation() {
+  const authCtx = React.useContext(AuthContext);
+
   return (
     <NavigationContainer>
-      <AuthStack />
+      {!authCtx.isAuthenticated ? <AuthStack /> : <AuthenticatedStack />}
     </NavigationContainer>
   );
+}
+
+function Root() {
+  const [isTringLogin, setIsTringLogin] = React.useState(true);
+  const authCtx = React.useContext(AuthContext);
+
+  React.useEffect(() => {
+    async function fetchToken() {
+      try {
+        setIsTringLogin(true);
+        const storedToken = await AsyncStorage.getItem("token");
+        if (storedToken) {
+          authCtx.authenticate(storedToken);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsTringLogin(false);
+      }
+    }
+    fetchToken();
+  }, []);
+
+  if (isTringLogin) return <AppLoading />;
+
+  return <Navigation />;
 }
 
 export default function App() {
   return (
     <>
-      <StatusBar style="light" />
-
-      <Navigation />
+      <AuthContextProvider>
+        <StatusBar style="light" />
+        <Root />
+      </AuthContextProvider>
     </>
   );
 }
