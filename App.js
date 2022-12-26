@@ -1,4 +1,5 @@
 import { StatusBar } from "expo-status-bar";
+import { View, Text } from "react-native";
 
 // Navigator
 import { NavigationContainer } from "@react-navigation/native";
@@ -19,8 +20,9 @@ import { Colors } from "./constants/styles";
 import React from "react";
 
 // Loading app
-import AppLoading from "expo-app-loading";
+import * as SplashScreen from "expo-splash-screen";
 
+SplashScreen.preventAutoHideAsync();
 const Stack = createNativeStackNavigator();
 
 function AuthStack() {
@@ -84,11 +86,12 @@ function Root() {
   React.useEffect(() => {
     async function fetchToken() {
       try {
-        setIsTringLogin(true);
+        await SplashScreen.hideAsync();
         const storedToken = await AsyncStorage.getItem("token");
         if (storedToken) {
           authCtx.authenticate(storedToken);
         }
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       } catch (e) {
         console.error(e);
       } finally {
@@ -98,7 +101,12 @@ function Root() {
     fetchToken();
   }, []);
 
-  if (isTringLogin) return <AppLoading />;
+  if (isTringLogin)
+    return (
+      <View>
+        <Text>AppLoading</Text>
+      </View>
+    );
 
   return <Navigation />;
 }
